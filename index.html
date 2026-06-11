@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>free-ai-router - 多 AI 后端链式 fallback 演示</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, '微软 YaHei', sans-serif;
+    background: #0a0a0f;
+    color: #e0e0e0;
+    min-height: 100vh;
+    padding: 30px 20px;
+  }
+  .container { max-width: 1100px; margin: 0 auto; }
+  header { text-align: center; margin-bottom: 40px; }
+  h1 {
+    font-size: 32px;
+    background: linear-gradient(90deg, #fb923c, #22C55E);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .tagline { color: #a0a0a0; font-size: 14px; margin-top: 8px; }
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin: 30px 0;
+  }
+  .node {
+    background: rgba(251,146,60,0.1);
+    border: 2px solid #fb923c;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    transition: all 0.2s;
+  }
+  .node.active { background: rgba(34,197,94,0.2); border-color: #22C55E; transform: scale(1.05); }
+  .node.failed { background: rgba(239,68,68,0.2); border-color: #ef4444; opacity: 0.5; }
+  .node-icon { font-size: 32px; margin-bottom: 8px; }
+  .node-name { font-weight: bold; }
+  .node-status { font-size: 12px; color: #888; margin-top: 5px; }
+  .test-area {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+  }
+  .test-area h2 { color: #22C55E; margin-bottom: 15px; font-size: 20px; }
+  input[type=text] {
+    width: 100%;
+    padding: 12px;
+    background: #1a1a23;
+    border: 1px solid #2a2a3e;
+    color: #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+  button {
+    padding: 10px 20px;
+    background: #22C55E;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  button:hover { background: #16a34a; }
+  button:disabled { background: #666; cursor: not-allowed; }
+  .log {
+    background: #000;
+    border: 1px solid #1a1a23;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 200px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .log-line { padding: 2px 0; }
+  .log-ok { color: #22C55E; }
+  .log-fail { color: #ef4444; }
+  .log-info { color: #5865F2; }
+  .log-dim { color: #666; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin: 30px 0;
+  }
+  .stat {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .stat-num { font-size: 28px; color: #fb923c; font-weight: bold; }
+  .stat-label { font-size: 12px; color: #888; margin-top: 5px; }
+  .code-block {
+    background: #000;
+    border: 1px solid #1a1a23;
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Consolas', monospace;
+    font-size: 12px;
+    color: #22C55E;
+    margin: 10px 0;
+    overflow-x: auto;
+  }
+  .footer { text-align: center; color: #666; font-size: 12px; margin-top: 40px; }
+  .footer a { color: #fb923c; text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>🔀 free-ai-router</h1>
+    <p class="tagline">多 AI 后端链式 fallback 路由器 · 4 步自动降级</p>
+  </header>
+
+  <div class="stats-grid">
+    <div class="stat">
+      <div class="stat-num" id="calls">0</div>
+      <div class="stat-label">总请求数</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="fallbacks">0</div>
+      <div class="stat-label">触发 fallback</div>
+    </div>
+    <div class="stat">
+      <div class="stat-num" id="saved">0</div>
+      <div class="stat-label">节省费用(估算)</div>
+    </div>
+  </div>
+
+  <h2 style="color:#22C55E; margin: 30px 0 15px;">📡 fallback 链路</h2>
+  <div class="flow">
+    <div class="node" id="n1">
+      <div class="node-icon">1</div>
+      <div class="node-name">github_models</div>
+      <div class="node-status">免费 · GPT-4o / Llama / Phi</div>
+    </div>
+    <div class="node" id="n2">
+      <div class="node-icon">2</div>
+      <div class="node-name">groq</div>
+      <div class="node-status">免费 · 超快推理</div>
+    </div>
+    <div class="node" id="n3">
+      <div class="node-icon">3</div>
+      <div class="node-name">gemini</div>
+      <div class="node-status">免费层 · 多模态</div>
+    </div>
+    <div class="node" id="n4">
+      <div class="node-icon">4</div>
+      <div class="node-name">skillai.top</div>
+      <div class="node-status">国内中转 · 1/3 价格</div>
+    </div>
+  </div>
+
+  <div class="test-area">
+    <h2>🧪 模拟测试</h2>
+    <p style="color:#888; font-size:13px; margin-bottom:15px;">这是 demo 页面(浏览器内模拟),实际跑要装 <code>pip install free-ai-router</code>。看 fallback 流程。</p>
+    <input type="text" id="prompt" placeholder="输入 prompt,例如:用 Python 写个快排" value="用 Python 写一个快排算法">
+    <div>
+      <label style="margin-right: 15px;"><input type="checkbox" id="force1fail" checked> 模拟 github_models 失败</label>
+      <label style="margin-right: 15px;"><input type="checkbox" id="force2fail"> 模拟 groq 失败</label>
+    </div>
+    <button id="runBtn">▶ 跑请求</button>
+    <div class="log" id="log"></div>
+  </div>
+
+  <h2 style="color:#22C55E; margin: 30px 0 15px;">🛠️ 实际用 (命令行)</h2>
+  <div class="code-block"># 1. 装
+pip install free-ai-router
+
+# 2. 配 key
+export GITHUB_TOKEN=ghp_xxx
+export GROQ_API_KEY=gsk_xxx
+export GEMINI_API_KEY=AIzaSy_xxx
+
+# 3. 跑
+free-ai-router ask "你的问题"
+
+# 自动 fallback 流程:
+# 1. 试 github_models  → 失败
+# 2. 试 groq          → 失败
+# 3. 试 gemini         → 成功
+# 4. 返回结果</div>
+
+  <div class="footer">
+    <p>GitHub: <a href="https://github.com/fast118/free-ai-router" target="_blank">fast118/free-ai-router</a></p>
+    <p>Gitee: <a href="https://gitee.com/wudijia2026/free-ai-router" target="_blank">wudijia2026/free-ai-router</a></p>
+    <p>控制台: <a href="https://fast118.github.io/console/" target="_blank">fast118.github.io/console/</a></p>
+  </div>
+</div>
+
+<script>
+  // 模拟统计
+  let calls = 0;
+  let fallbacks = 0;
+  let saved = 0;
+
+  const logEl = document.getElementById("log");
+  const statsEls = {
+    calls: document.getElementById("calls"),
+    fallbacks: document.getElementById("fallbacks"),
+    saved: document.getElementById("saved"),
+  };
+
+  function log(msg, type) {
+    const line = document.createElement("div");
+    line.className = "log-line log-" + type;
+    line.textContent = msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function reset() {
+    document.querySelectorAll(".node").forEach(n => {
+      n.classList.remove("active", "failed");
+    });
+  }
+
+  function activate(idx) {
+    document.getElementById("n" + idx).classList.add("active");
+  }
+
+  function fail(idx) {
+    document.getElementById("n" + idx).classList.remove("active");
+    document.getElementById("n" + idx).classList.add("failed");
+  }
+
+  function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  document.getElementById("runBtn").addEventListener("click", async () => {
+    const btn = document.getElementById("runBtn");
+    const prompt = document.getElementById("prompt").value || "你好";
+    const f1 = document.getElementById("force1fail").checked;
+    const f2 = document.getElementById("force2fail").checked;
+    btn.disabled = true;
+    logEl.innerHTML = "";
+    reset();
+    log("→ 收到请求: " + prompt, "info");
+    log("", "dim");
+
+    calls++;
+    statsEls.calls.textContent = calls;
+
+    // 试 github_models
+    log("→ [1/4] 尝试 github_models...", "info");
+    await sleep(600);
+    if (f1) {
+      log("  ✗ 429 rate limit exceeded", "fail");
+      fail(1);
+      fallbacks++;
+    } else {
+      log("  ✓ 成功 (320ms)", "ok");
+      activate(1);
+      saved += 5;
+      statsEls.fallbacks.textContent = fallbacks;
+      statsEls.saved.textContent = "$" + saved;
+      btn.disabled = false;
+      return;
+    }
+
+    // 试 groq
+    log("→ [2/4] 尝试 groq...", "info");
+    await sleep(600);
+    if (f2) {
+      log("  ✗ 服务暂时不可用", "fail");
+      fail(2);
+      fallbacks++;
+    } else {
+      log("  ✓ 成功 (180ms)", "ok");
+      activate(2);
+      saved += 5;
+      statsEls.fallbacks.textContent = fallbacks;
+      statsEls.saved.textContent = "$" + saved;
+      btn.disabled = false;
+      return;
+    }
+
+    // 试 gemini
+    log("→ [3/4] 尝试 gemini...", "info");
+    await sleep(600);
+    if (false) {
+      log("  ✗ quota exceeded", "fail");
+      fail(3);
+      fallbacks++;
+    } else {
+      log("  ✓ 成功 (450ms)", "ok");
+      activate(3);
+      saved += 5;
+      statsEls.fallbacks.textContent = fallbacks;
+      statsEls.saved.textContent = "$" + saved;
+      btn.disabled = false;
+      return;
+    }
+
+    // 最后用 skillai
+    log("→ [4/4] 尝试 skillai.top (国内中转)...", "info");
+    await sleep(600);
+    log("  ✓ 成功 (380ms)", "ok");
+    activate(4);
+    statsEls.fallbacks.textContent = fallbacks;
+    statsEls.saved.textContent = "$" + saved;
+    btn.disabled = false;
+  });
+
+  // 初始 log
+  log("→ free-ai-router demo 加载完成", "ok");
+  log("→ 4 个免费 provider 已就绪", "info");
+  log("→ 勾选 '模拟失败' 体验 fallback 流程", "dim");
+</script>
+</body>
+</html>
