@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>free-ai-router - 多 AI 后端链式 fallback 演示</title>
+<title>free-ai-router v0.2 - 多 AI 后端链式 fallback 演示</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -23,71 +23,8 @@
     background-clip: text;
   }
   .tagline { color: #a0a0a0; font-size: 14px; margin-top: 8px; }
-  .flow {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 15px;
-    margin: 30px 0;
-  }
-  .node {
-    background: rgba(251,146,60,0.1);
-    border: 2px solid #fb923c;
-    border-radius: 12px;
-    padding: 20px;
-    text-align: center;
-    transition: all 0.2s;
-  }
-  .node.active { background: rgba(34,197,94,0.2); border-color: #22C55E; transform: scale(1.05); }
-  .node.failed { background: rgba(239,68,68,0.2); border-color: #ef4444; opacity: 0.5; }
-  .node-icon { font-size: 32px; margin-bottom: 8px; }
-  .node-name { font-weight: bold; }
-  .node-status { font-size: 12px; color: #888; margin-top: 5px; }
-  .test-area {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 12px;
-    padding: 25px;
-    margin: 30px 0;
-  }
-  .test-area h2 { color: #22C55E; margin-bottom: 15px; font-size: 20px; }
-  input[type=text] {
-    width: 100%;
-    padding: 12px;
-    background: #1a1a23;
-    border: 1px solid #2a2a3e;
-    color: #e0e0e0;
-    border-radius: 6px;
-    font-size: 14px;
-    margin-bottom: 12px;
-  }
-  button {
-    padding: 10px 20px;
-    background: #22C55E;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    font-size: 14px;
-    cursor: pointer;
-  }
-  button:hover { background: #16a34a; }
-  button:disabled { background: #666; cursor: not-allowed; }
-  .log {
-    background: #000;
-    border: 1px solid #1a1a23;
-    border-radius: 6px;
-    padding: 15px;
-    margin-top: 15px;
-    font-family: 'Consolas', 'Courier New', monospace;
-    font-size: 13px;
-    min-height: 200px;
-    max-height: 400px;
-    overflow-y: auto;
-  }
-  .log-line { padding: 2px 0; }
-  .log-ok { color: #22C55E; }
-  .log-fail { color: #ef4444; }
-  .log-info { color: #5865F2; }
-  .log-dim { color: #666; }
+  .version { color: #fb923c; font-size: 12px; margin-top: 4px; }
+
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -103,6 +40,128 @@
   }
   .stat-num { font-size: 28px; color: #fb923c; font-weight: bold; }
   .stat-label { font-size: 12px; color: #888; margin-top: 5px; }
+
+  /* v0.2: provider flow - 8 nodes in 2 rows */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin: 30px 0;
+  }
+  @media (max-width: 700px) { .flow { grid-template-columns: repeat(2, 1fr); } }
+  .node {
+    background: rgba(251,146,60,0.1);
+    border: 2px solid #fb923c;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    transition: all 0.2s;
+    font-size: 13px;
+  }
+  .node.active { background: rgba(34,197,94,0.2); border-color: #22C55E; transform: scale(1.05); }
+  .node.failed { background: rgba(239,68,68,0.2); border-color: #ef4444; opacity: 0.5; }
+  .node.skipped { background: rgba(100,100,100,0.1); border-color: #666; opacity: 0.4; }
+  .node-icon { font-size: 24px; margin-bottom: 5px; }
+  .node-name { font-weight: bold; font-size: 13px; }
+  .node-status { font-size: 11px; color: #888; margin-top: 3px; }
+  .node-prio { display: inline-block; background: rgba(0,0,0,0.3); padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-top: 4px; }
+
+  /* v0.2: health status */
+  .health-summary {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin: 20px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .health-stat { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .health-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dot-ok { background: #22C55E; }
+  .dot-fail { background: #ef4444; }
+  .dot-unknown { background: #888; }
+  .health-update { color: #888; font-size: 11px; }
+
+  .test-area {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 12px;
+    padding: 25px;
+    margin: 30px 0;
+  }
+  .test-area h2 { color: #22C55E; margin-bottom: 15px; font-size: 20px; }
+  .test-controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  input[type=text], input[type=number] {
+    width: 100%;
+    padding: 10px 12px;
+    background: #1a1a23;
+    border: 1px solid #2a2a3e;
+    color: #e0e0e0;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  @media (max-width: 600px) { .row { grid-template-columns: 1fr; } }
+  button {
+    padding: 8px 16px;
+    background: #22C55E;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  button:hover { background: #16a34a; }
+  button:disabled { background: #666; cursor: not-allowed; }
+  button.secondary { background: #5865F2; }
+  button.secondary:hover { background: #4752c4; }
+  button.warn { background: #fb923c; }
+  button.warn:hover { background: #ea7c1c; }
+  label { font-size: 12px; color: #a0a0a0; }
+  .checkbox-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 10px 0; }
+  .checkbox-row label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+  .log {
+    background: #000;
+    border: 1px solid #1a1a23;
+    border-radius: 6px;
+    padding: 15px;
+    margin-top: 15px;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 13px;
+    min-height: 180px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .log-line { padding: 2px 0; }
+  .log-ok { color: #22C55E; }
+  .log-fail { color: #ef4444; }
+  .log-info { color: #5865F2; }
+  .log-dim { color: #666; }
+  .log-warn { color: #fb923c; }
+
+  /* v0.2: cost calculator */
+  .cost-calc {
+    background: rgba(251,146,60,0.05);
+    border: 1px solid rgba(251,146,60,0.3);
+    border-radius: 10px;
+    padding: 20px;
+    margin: 20px 0;
+  }
+  .cost-calc h2 { color: #fb923c; font-size: 18px; margin-bottom: 12px; }
+  .cost-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+  .cost-table th, .cost-table td { padding: 6px 10px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+  .cost-table th { color: #888; font-weight: normal; font-size: 11px; text-transform: uppercase; }
+  .cost-table tr.highlight { background: rgba(34,197,94,0.1); }
+  .cost-table td.cheapest { color: #22C55E; font-weight: bold; }
+  .cost-table td.expensive { color: #ef4444; }
+
   .code-block {
     background: #000;
     border: 1px solid #1a1a23;
@@ -122,7 +181,8 @@
 <div class="container">
   <header>
     <h1>🔀 free-ai-router</h1>
-    <p class="tagline">多 AI 后端链式 fallback 路由器 · 4 步自动降级</p>
+    <p class="tagline">多 AI 后端链式 fallback 路由器 · 8 provider 自动降级</p>
+    <p class="version">v0.2 · 2026-06-20</p>
   </header>
 
   <div class="stats-grid">
@@ -135,32 +195,70 @@
       <div class="stat-label">触发 fallback</div>
     </div>
     <div class="stat">
-      <div class="stat-num" id="saved">0</div>
+      <div class="stat-num" id="saved">$0</div>
       <div class="stat-label">节省费用(估算)</div>
     </div>
   </div>
 
-  <h2 style="color:#22C55E; margin: 30px 0 15px;">📡 fallback 链路</h2>
-  <div class="flow">
-    <div class="node" id="n1">
+  <!-- v0.2: health status summary -->
+  <div class="health-summary">
+    <div style="display:flex; gap:20px; flex-wrap:wrap;">
+      <div class="health-stat"><span class="health-dot dot-ok"></span><span id="ok-count">5</span> minimax OK</div>
+      <div class="health-stat"><span class="health-dot dot-ok"></span><span id="ds-ok">3</span> deepseek OK</div>
+      <div class="health-stat"><span class="health-dot dot-fail"></span><span id="fail-count">0</span> unhealthy</div>
+    </div>
+    <div class="health-update">最后健康检查: <span id="health-time">mock (无 state/key_health.json)</span></div>
+  </div>
+
+  <h2 style="color:#22C55E; margin: 30px 0 15px;">📡 fallback 链路 (8 provider)</h2>
+  <div class="flow" id="flow">
+    <div class="node" id="n1" data-prio="1">
       <div class="node-icon">1</div>
-      <div class="node-name">github_models</div>
-      <div class="node-status">免费 · GPT-4o / Llama / Phi</div>
+      <div class="node-name">minimax #1</div>
+      <div class="node-status">包月 · MiniMax-M3</div>
+      <div class="node-prio">P1</div>
     </div>
-    <div class="node" id="n2">
+    <div class="node" id="n2" data-prio="2">
       <div class="node-icon">2</div>
-      <div class="node-name">groq</div>
-      <div class="node-status">免费 · 超快推理</div>
+      <div class="node-name">minimax #2</div>
+      <div class="node-status">包月 · MiniMax-M3</div>
+      <div class="node-prio">P2</div>
     </div>
-    <div class="node" id="n3">
+    <div class="node" id="n3" data-prio="3">
       <div class="node-icon">3</div>
-      <div class="node-name">gemini</div>
-      <div class="node-status">免费层 · 多模态</div>
+      <div class="node-name">minimax #3</div>
+      <div class="node-status">包月 · MiniMax-M3</div>
+      <div class="node-prio">P3</div>
     </div>
-    <div class="node" id="n4">
+    <div class="node" id="n4" data-prio="4">
       <div class="node-icon">4</div>
-      <div class="node-name">skillai.top</div>
-      <div class="node-status">国内中转 · 1/3 价格</div>
+      <div class="node-name">minimax #4</div>
+      <div class="node-status">包月 · MiniMax-M3</div>
+      <div class="node-prio">P4</div>
+    </div>
+    <div class="node" id="n5" data-prio="5">
+      <div class="node-icon">5</div>
+      <div class="node-name">minimax #5</div>
+      <div class="node-status">包月 · MiniMax-M3</div>
+      <div class="node-prio">P5</div>
+    </div>
+    <div class="node" id="n6" data-prio="6">
+      <div class="node-icon">6</div>
+      <div class="node-name">deepseek #1</div>
+      <div class="node-status">按量 · deepseek-chat</div>
+      <div class="node-prio">P6</div>
+    </div>
+    <div class="node" id="n7" data-prio="7">
+      <div class="node-icon">7</div>
+      <div class="node-name">deepseek #2</div>
+      <div class="node-status">按量 · deepseek-chat</div>
+      <div class="node-prio">P7</div>
+    </div>
+    <div class="node" id="n8" data-prio="8">
+      <div class="node-icon">8</div>
+      <div class="node-name">deepseek #3</div>
+      <div class="node-status">按量 · deepseek-chat</div>
+      <div class="node-prio">P8</div>
     </div>
   </div>
 
@@ -168,158 +266,243 @@
     <h2>🧪 模拟测试</h2>
     <p style="color:#888; font-size:13px; margin-bottom:15px;">这是 demo 页面(浏览器内模拟),实际跑要装 <code>pip install free-ai-router</code>。看 fallback 流程。</p>
     <input type="text" id="prompt" placeholder="输入 prompt,例如:用 Python 写个快排" value="用 Python 写一个快排算法">
-    <div>
-      <label style="margin-right: 15px;"><input type="checkbox" id="force1fail" checked> 模拟 github_models 失败</label>
-      <label style="margin-right: 15px;"><input type="checkbox" id="force2fail"> 模拟 groq 失败</label>
+    <div class="checkbox-row">
+      <label><input type="checkbox" id="fail-minimax" checked> 模拟 minimax 5 个全失败</label>
+      <label><input type="checkbox" id="fail-deepseek"> 模拟 deepseek 部分失败</label>
+      <label><input type="checkbox" id="skip-unhealthy"> 跳过 health_check unhealthy</label>
     </div>
-    <button id="runBtn">▶ 跑请求</button>
+    <div class="test-controls">
+      <button id="runBtn">▶ 跑请求</button>
+      <button id="clearBtn" class="secondary">🗑 清日志</button>
+      <button id="resetStatsBtn" class="warn">🔄 重置统计</button>
+    </div>
     <div class="log" id="log"></div>
+  </div>
+
+  <!-- v0.2: cost calculator -->
+  <div class="cost-calc">
+    <h2>💰 成本计算器 (实测价格)</h2>
+    <div class="row">
+      <div>
+        <label>输入 tokens</label>
+        <input type="number" id="inp-tokens" value="1000" min="1" max="10000000">
+      </div>
+      <div>
+        <label>输出 tokens</label>
+        <input type="number" id="out-tokens" value="500" min="1" max="10000000">
+      </div>
+      <div>
+        <label>&nbsp;</label>
+        <button id="costBtn" style="width:100%;">💵 算账</button>
+      </div>
+    </div>
+    <table class="cost-table" id="cost-table">
+      <thead>
+        <tr><th>Provider</th><th>模型</th><th>输入价 ($/M)</th><th>输出价 ($/M)</th><th>本次费用</th></tr>
+      </thead>
+      <tbody id="cost-body">
+        <tr><td colspan="5" style="color:#888; text-align:center; padding:20px;">点 "💵 算账" 看结果</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <h2 style="color:#22C55E; margin: 30px 0 15px;">🛠️ 实际用 (命令行)</h2>
   <div class="code-block"># 1. 装
 pip install free-ai-router
 
-# 2. 配 key
-export GITHUB_TOKEN=ghp_xxx
-export GROQ_API_KEY=gsk_xxx
-export GEMINI_API_KEY=AIzaSy_xxx
+# 2. 配 key (5 个 minimax + 3 个 deepseek)
+set MINIMAX_API_KEY_1=sk-cp-xxx1
+set MINIMAX_API_KEY_2=sk-cp-xxx2
+set MINIMAX_API_KEY_3=sk-cp-xxx3
+set MINIMAX_API_KEY_4=sk-cp-xxx4
+set MINIMAX_API_KEY_5=sk-cp-xxx5
+set DEEPSEEK_API_KEY_1=sk-xxx1
+set DEEPSEEK_API_KEY_2=sk-xxx2
+set DEEPSEEK_API_KEY_3=sk-xxx3
 
 # 3. 跑
-free-ai-router ask "你的问题"
+py smart_router.py "你的问题"
+py smart_router.py --status      # 查看 8 个 provider 状态
+py smart_router.py --list        # 列出所有可用模型
+
+# 4. 健康检查 (定期跑, 让 router 自动跳过坏 key)
+py key_health_check.py --write-state
 
 # 自动 fallback 流程:
-# 1. 试 github_models  → 失败
-# 2. 试 groq          → 失败
-# 3. 试 gemini         → 成功
-# 4. 返回结果</div>
+# 1. 试 minimax #1    → 失败 → cooldown 60s
+# 2. 试 minimax #2    → 失败
+# 3. 试 minimax #3    → 成功 (260ms)  ← 返回</div>
 
   <div class="footer">
     <p>GitHub: <a href="https://github.com/fast118/free-ai-router" target="_blank">fast118/free-ai-router</a></p>
     <p>Gitee: <a href="https://gitee.com/wudijia2026/free-ai-router" target="_blank">wudijia2026/free-ai-router</a></p>
-    <p>控制台: <a href="https://fast118.github.io/console/" target="_blank">fast118.github.io/console/</a></p>
+    <p>v0.2: 8 provider 真实数据 + 健康状态 + 成本计算器 · 2026-06-20</p>
   </div>
 </div>
 
 <script>
-  // 模拟统计
-  let calls = 0;
-  let fallbacks = 0;
-  let saved = 0;
+// ====== 状态 ======
+let calls = 0, fallbacks = 0, saved = 0;
+const logEl = document.getElementById("log");
+const PROMPT_EL = document.getElementById("prompt");
+const HEALTH = {
+  "minimax_1": true, "minimax_2": true, "minimax_3": true, "minimax_4": true, "minimax_5": true,
+  "deepseek_1": true, "deepseek_2": true, "deepseek_3": true,
+};
 
-  const logEl = document.getElementById("log");
-  const statsEls = {
-    calls: document.getElementById("calls"),
-    fallbacks: document.getElementById("fallbacks"),
-    saved: document.getElementById("saved"),
-  };
+// ====== 日志 ======
+function log(msg, type) {
+  const line = document.createElement("div");
+  line.className = "log-line log-" + (type || "info");
+  line.textContent = msg;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function clearLog() { logEl.innerHTML = ""; }
+function resetStats() {
+  calls = 0; fallbacks = 0; saved = 0;
+  document.getElementById("calls").textContent = "0";
+  document.getElementById("fallbacks").textContent = "0";
+  document.getElementById("saved").textContent = "$0";
+  log("→ 统计已重置", "info");
+}
 
-  function log(msg, type) {
-    const line = document.createElement("div");
-    line.className = "log-line log-" + type;
-    line.textContent = msg;
-    logEl.appendChild(line);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
+// ====== 节点控制 ======
+function resetNodes() {
+  document.querySelectorAll(".node").forEach(n => n.classList.remove("active", "failed", "skipped"));
+}
+function activate(idx) { document.getElementById("n" + idx).classList.add("active"); }
+function fail(idx) { document.getElementById("n" + idx).classList.remove("active"); document.getElementById("n" + idx).classList.add("failed"); }
+function skip(idx, reason) {
+  const n = document.getElementById("n" + idx);
+  n.classList.add("skipped");
+  n.querySelector(".node-status").textContent = reason;
+}
 
-  function reset() {
-    document.querySelectorAll(".node").forEach(n => {
-      n.classList.remove("active", "failed");
-    });
-  }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-  function activate(idx) {
-    document.getElementById("n" + idx).classList.add("active");
-  }
+// ====== 跑请求模拟 (8 provider) ======
+document.getElementById("runBtn").addEventListener("click", async () => {
+  const btn = document.getElementById("runBtn");
+  const prompt = PROMPT_EL.value || "你好";
+  const failMm = document.getElementById("fail-minimax").checked;
+  const failDs = document.getElementById("fail-deepseek").checked;
+  const skipUnhealthy = document.getElementById("skip-unhealthy").checked;
+  btn.disabled = true;
+  logEl.innerHTML = "";
+  resetNodes();
+  log("→ 收到请求: " + prompt, "info");
+  log("", "dim");
+  calls++;
+  document.getElementById("calls").textContent = calls;
 
-  function fail(idx) {
-    document.getElementById("n" + idx).classList.remove("active");
-    document.getElementById("n" + idx).classList.add("failed");
-  }
-
-  function sleep(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-
-  document.getElementById("runBtn").addEventListener("click", async () => {
-    const btn = document.getElementById("runBtn");
-    const prompt = document.getElementById("prompt").value || "你好";
-    const f1 = document.getElementById("force1fail").checked;
-    const f2 = document.getElementById("force2fail").checked;
-    btn.disabled = true;
-    logEl.innerHTML = "";
-    reset();
-    log("→ 收到请求: " + prompt, "info");
-    log("", "dim");
-
-    calls++;
-    statsEls.calls.textContent = calls;
-
-    // 试 github_models
-    log("→ [1/4] 尝试 github_models...", "info");
-    await sleep(600);
-    if (f1) {
-      log("  ✗ 429 rate limit exceeded", "fail");
-      fail(1);
+  // 5 个 minimax (P1-P5)
+  for (let i = 1; i <= 5; i++) {
+    log(`→ [${i}/8] 尝试 minimax #${i}...`, "info");
+    await sleep(400);
+    if (skipUnhealthy && !HEALTH[`minimax_${i}`]) {
+      log(`  ⊘ 跳过 (health_check unhealthy)`, "warn");
+      skip(i, "unhealthy");
+      continue;
+    }
+    activate(i);
+    if (failMm) {
+      log(`  ✗ 429 rate limit`, "fail");
+      fail(i);
       fallbacks++;
     } else {
-      log("  ✓ 成功 (320ms)", "ok");
-      activate(1);
-      saved += 5;
-      statsEls.fallbacks.textContent = fallbacks;
-      statsEls.saved.textContent = "$" + saved;
-      btn.disabled = false;
+      log(`  ✓ 成功 (${200 + i * 30}ms)`, "ok");
+      saved += 3;
+      finishRun();
       return;
     }
+  }
 
-    // 试 groq
-    log("→ [2/4] 尝试 groq...", "info");
-    await sleep(600);
-    if (f2) {
-      log("  ✗ 服务暂时不可用", "fail");
-      fail(2);
+  // 3 个 deepseek (P6-P8)
+  for (let i = 1; i <= 3; i++) {
+    const n = 5 + i;
+    log(`→ [${n}/8] 尝试 deepseek #${i}...`, "info");
+    await sleep(500);
+    if (skipUnhealthy && !HEALTH[`deepseek_${i}`]) {
+      log(`  ⊘ 跳过 (health_check unhealthy)`, "warn");
+      skip(n, "unhealthy");
+      continue;
+    }
+    activate(n);
+    if (failDs && i <= 2) {
+      log(`  ✗ 服务暂时不可用`, "fail");
+      fail(n);
       fallbacks++;
     } else {
-      log("  ✓ 成功 (180ms)", "ok");
-      activate(2);
-      saved += 5;
-      statsEls.fallbacks.textContent = fallbacks;
-      statsEls.saved.textContent = "$" + saved;
-      btn.disabled = false;
+      log(`  ✓ 成功 (${400 + i * 50}ms)`, "ok");
+      saved += 2;
+      finishRun();
       return;
     }
+  }
 
-    // 试 gemini
-    log("→ [3/4] 尝试 gemini...", "info");
-    await sleep(600);
-    if (false) {
-      log("  ✗ quota exceeded", "fail");
-      fail(3);
-      fallbacks++;
-    } else {
-      log("  ✓ 成功 (450ms)", "ok");
-      activate(3);
-      saved += 5;
-      statsEls.fallbacks.textContent = fallbacks;
-      statsEls.saved.textContent = "$" + saved;
-      btn.disabled = false;
-      return;
-    }
+  log("✗ 所有 8 个 provider 都失败", "fail");
+  log("  建议: 等 60s 后重试, 或跑 key_health_check.py --write-state", "warn");
+  finishRun();
 
-    // 最后用 skillai
-    log("→ [4/4] 尝试 skillai.top (国内中转)...", "info");
-    await sleep(600);
-    log("  ✓ 成功 (380ms)", "ok");
-    activate(4);
-    statsEls.fallbacks.textContent = fallbacks;
-    statsEls.saved.textContent = "$" + saved;
+  function finishRun() {
+    document.getElementById("fallbacks").textContent = fallbacks;
+    document.getElementById("saved").textContent = "$" + saved;
     btn.disabled = false;
-  });
+  }
+});
 
-  // 初始 log
-  log("→ free-ai-router demo 加载完成", "ok");
-  log("→ 4 个免费 provider 已就绪", "info");
-  log("→ 勾选 '模拟失败' 体验 fallback 流程", "dim");
+// ====== 健康检查 toggle (mock) ======
+document.getElementById("skip-unhealthy").addEventListener("change", e => {
+  if (e.target.checked) {
+    HEALTH["minimax_2"] = false;
+    HEALTH["deepseek_3"] = false;
+    log("→ 健康状态: minimax_2 ✗ unhealthy, deepseek_3 ✗ unhealthy", "warn");
+  } else {
+    HEALTH["minimax_2"] = true;
+    HEALTH["deepseek_3"] = true;
+    log("→ 健康状态: 全部 healthy", "ok");
+  }
+});
+
+// ====== 成本计算器 ======
+const COSTS = {
+  "MiniMax-M3":     { inp: 1.0,  out: 3.0,  label: "minimax (包月)", per_call: 0 },
+  "MiniMax-M2.7":   { inp: 0.8,  out: 2.4,  label: "minimax (包月)", per_call: 0 },
+  "deepseek-chat":  { inp: 0.14, out: 0.28, label: "deepseek (按量)", per_call: 0 },
+  "deepseek-reasoner": { inp: 0.55, out: 2.19, label: "deepseek (按量)", per_call: 0 },
+  "gpt-4o":         { inp: 2.5,  out: 10.0, label: "openai (对比)", per_call: 0 },
+  "claude-sonnet-4": { inp: 3.0, out: 15.0, label: "anthropic (对比)", per_call: 0 },
+};
+document.getElementById("costBtn").addEventListener("click", () => {
+  const inp = parseInt(document.getElementById("inp-tokens").value) || 0;
+  const out = parseInt(document.getElementById("out-tokens").value) || 0;
+  const tbody = document.getElementById("cost-body");
+  tbody.innerHTML = "";
+  let cheapest = Infinity, cheapestName = "";
+  const rows = Object.entries(COSTS).map(([model, cfg]) => {
+    const cost = (inp * cfg.inp + out * cfg.out) / 1_000_000;
+    if (cost < cheapest) { cheapest = cost; cheapestName = model; }
+    return { model, cfg, cost };
+  });
+  rows.sort((a, b) => a.cost - b.cost);
+  rows.forEach(({ model, cfg, cost }) => {
+    const tr = document.createElement("tr");
+    const isCheapest = model === cheapestName;
+    if (isCheapest) tr.className = "highlight";
+    tr.innerHTML = `<td>${cfg.label}</td><td>${model}</td><td>$${cfg.inp.toFixed(2)}</td><td>$${cfg.out.toFixed(2)}</td><td class="${isCheapest ? "cheapest" : ""}">$${cost.toFixed(4)} ${isCheapest ? "← 最便宜" : ""}</td>`;
+    tbody.appendChild(tr);
+  });
+});
+
+// ====== 按钮绑定 ======
+document.getElementById("clearBtn").addEventListener("click", clearLog);
+document.getElementById("resetStatsBtn").addEventListener("click", resetStats);
+
+// ====== 初始化 ======
+log("→ free-ai-router v0.2 demo 加载完成", "ok");
+log("→ 8 provider 已就绪 (5×minimax + 3×deepseek)", "info");
+log("→ 勾选 '跳过 health_check unhealthy' 模拟 v0.2 自动跳过坏 key", "dim");
 </script>
 </body>
 </html>
