@@ -9,7 +9,7 @@
 
 ## 这是什么?
 
-[free-ai-router](https://github.com/fast118/free-ai-router) 的 Web Demo,让你**直观看到 fallback 流程**。
+[free-ai-router](https://github.com/fast1188/free-ai-router) 的 Web Demo,让你**直观看到 fallback 流程**。
 
 **功能:**
 - 可视化 **8 provider** fallback 链路(5×minimax 包月 + 3×deepseek 按量)
@@ -23,9 +23,9 @@
 ## 部署
 
 **GitHub Pages:**
-1. 推代码到 `fast118/free-ai-router-webui` 仓库
+1. 推代码到 `fast1188/free-ai-router-webui` 仓库
 2. Settings → Pages → Source 选 `main` 分支
-3. 几分钟后访问 `https://fast118.github.io/free-ai-router-webui/`
+3. 几分钟后访问 `https://fast1188.github.io/free-ai-router-webui/`
 
 **本地预览:**
 ```bash
@@ -128,4 +128,4 @@ MIT
 
 ![微信群](assets/wechat-qr.png)
 
-或提 [GitHub Issue](https://github.com/fast118/free-ai-router-webui/issues)
+或提 [GitHub Issue](https://github.com/fast1188/free-ai-router-webui/issues)
